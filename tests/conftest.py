@@ -53,3 +53,10 @@ def tmp_allowlist_file(tmp_aegis_dir):
 def tmp_audit_log(tmp_aegis_dir):
     """Return path to a temporary audit log file."""
     return tmp_aegis_dir / "audit.log"
+
+
+@pytest.fixture
+def tmp_empty_allowlist(tmp_aegis_dir):
+    path = tmp_aegis_dir / "allowlist.yaml"
+    path.write_text("allowed: []\n")
+    return path
