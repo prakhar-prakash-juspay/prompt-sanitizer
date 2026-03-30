@@ -11,11 +11,11 @@ export default function App() {
 
   useEffect(() => {
     fetchEntries(filter || undefined).then(setEntries)
+    const interval = setInterval(() => {
+      fetchEntries(filter || undefined).then(setEntries)
+    }, 3000)
+    return () => clearInterval(interval)
   }, [filter])
-
-  const refresh = () => {
-    fetchEntries(filter || undefined).then(setEntries)
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
@@ -40,13 +40,7 @@ export default function App() {
             <div style={{ fontSize: 11, color: '#64748b' }}>LLM Request Audit Log</div>
           </div>
         </div>
-        <button
-          onClick={refresh}
-          style={{
-            background: '#334155', color: '#e2e8f0', border: 'none',
-            padding: '6px 14px', borderRadius: 6, cursor: 'pointer', fontSize: 13,
-          }}
-        >Refresh</button>
+        <div style={{ fontSize: 11, color: '#475569' }}>Auto-refreshes every 3s</div>
       </div>
 
       {/* Stats */}
