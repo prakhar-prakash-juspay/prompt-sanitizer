@@ -16,18 +16,29 @@ BUILT_IN_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("PRIVATE_KEY", re.compile(r"-----BEGIN[A-Z\s]+PRIVATE KEY-----[\s\S]*?-----END[A-Z\s]+PRIVATE KEY-----")),
     ("JWT", re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}")),
     ("GITHUB_TOKEN", re.compile(r"(?<![A-Za-z0-9_])(gh[ps]_[A-Za-z0-9_]{36,})(?![A-Za-z0-9_])")),
+    # Generic secret: key=value or key:value patterns (lowered to 8+ chars)
     ("GENERIC_SECRET", re.compile(
-        r"""(?i)(?:api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|auth[_-]?token|credentials|password|passwd)"""
-        r"""[\s]*[=:]\s*['"]?([A-Za-z0-9/+=_\-]{20,})['"]?"""
+        r"""(?i)(?:api[_-]?key|api[_-]?secret|secret[_-]?key|access[_-]?token|auth[_-]?token|credentials|password|passwd|token|secret)"""
+        r"""[\s]*[=:]\s*['"]?([A-Za-z0-9/+=_\-!@#$%^&*]{8,})['"]?"""
     )),
     ("CONNECTION_STRING", re.compile(
         r"(?:postgresql|mysql|mongodb|redis|amqp|sqlite)://[^\s\"'`,;]+"
+    )),
+    # Prefixed API keys (sk_, pk_, api_, etc.)
+    ("PREFIXED_API_KEY", re.compile(
+        r"(?<![A-Za-z0-9_-])((?:sk|pk|api|key|token|secret)[_-][A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])"
     )),
     ("STRIPE_KEY", re.compile(r"(?<![A-Za-z0-9_])(sk_live_[A-Za-z0-9]{20,})(?![A-Za-z0-9_])")),
     ("SENDGRID_KEY", re.compile(r"(?<![A-Za-z0-9_])(SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43})(?![A-Za-z0-9_])")),
     ("TWILIO_KEY", re.compile(r"(?<![A-Za-z0-9_])(SK[a-f0-9]{32})(?![A-Za-z0-9_])")),
     ("SLACK_TOKEN", re.compile(r"(?<![A-Za-z0-9_])(xox[bpors]-[A-Za-z0-9-]{10,})(?![A-Za-z0-9_])")),
+    # Password in prose: "password to X" or "set her password to X"
+    ("PASSWORD_IN_PROSE", re.compile(
+        r"""(?i)(?:password|passwd|passcode)\s+(?:is|was|to|of|set\s+to)\s+['"]?([^\s'",.]{6,})['"]?"""
+    )),
     ("HIGH_ENTROPY_BASE64", re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{40,}={0,2}(?![A-Za-z0-9+/=])")),
+    # International phone numbers
+    ("PHONE_INTL", re.compile(r"(?<![A-Za-z0-9])(\+\d{1,3}[-.\s]?\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{3,6})(?![A-Za-z0-9])")),
 ]
 
 

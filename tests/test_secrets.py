@@ -55,3 +55,25 @@ class TestSecretDetector:
         assert aws[0].start >= 0
         assert aws[0].end > aws[0].start
         assert text[aws[0].start:aws[0].end] == aws[0].value
+
+    def test_detects_prefixed_api_key(self, detector):
+        text = "mock token sk-demo-abcdef1234567890"
+        detections = detector.detect(text)
+        assert any(d.entity_type == "PREFIXED_API_KEY" for d in detections)
+
+    def test_detects_password_in_prose(self, detector):
+        text = "set her password to ExamplePass!234"
+        detections = detector.detect(text)
+        assert any(d.entity_type == "PASSWORD_IN_PROSE" for d in detections)
+        pwd = [d for d in detections if d.entity_type == "PASSWORD_IN_PROSE"][0]
+        assert "ExamplePass!234" in pwd.value
+
+    def test_detects_international_phone(self, detector):
+        text = "phone number +44-7700-900123"
+        detections = detector.detect(text)
+        assert any(d.entity_type == "PHONE_INTL" for d in detections)
+
+    def test_detects_short_generic_secret(self, detector):
+        text = "api-key:abcd1234efgh"
+        detections = detector.detect(text)
+        assert any(d.entity_type == "GENERIC_SECRET" for d in detections)
