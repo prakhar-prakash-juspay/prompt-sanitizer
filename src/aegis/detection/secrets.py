@@ -24,17 +24,21 @@ BUILT_IN_PATTERNS: list[tuple[str, re.Pattern]] = [
     ("CONNECTION_STRING", re.compile(
         r"(?:postgresql|mysql|mongodb|redis|amqp|sqlite)://[^\s\"'`,;]+"
     )),
-    # Prefixed API keys (sk_, pk_, api_, etc.)
+    # Prefixed API keys (sk_, pk_, api_, etc.) and generic token-like strings (word-word-hex)
     ("PREFIXED_API_KEY", re.compile(
-        r"(?<![A-Za-z0-9_-])((?:sk|pk|api|key|token|secret)[_-][A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])"
+        r"(?<![A-Za-z0-9_-])((?:sk|pk|api|key|token|secret|test|demo|live|prod)[_-][A-Za-z0-9_-]{8,})(?![A-Za-z0-9_-])"
+    )),
+    # Generic token: word-word-hexstring (e.g., ind-test-9f8e7d6c5b4a)
+    ("GENERIC_TOKEN", re.compile(
+        r"(?<![A-Za-z0-9_-])([a-zA-Z]{2,10}-[a-zA-Z]{2,10}-[a-f0-9]{12,})(?![A-Za-z0-9_-])"
     )),
     ("STRIPE_KEY", re.compile(r"(?<![A-Za-z0-9_])(sk_live_[A-Za-z0-9]{20,})(?![A-Za-z0-9_])")),
     ("SENDGRID_KEY", re.compile(r"(?<![A-Za-z0-9_])(SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43})(?![A-Za-z0-9_])")),
     ("TWILIO_KEY", re.compile(r"(?<![A-Za-z0-9_])(SK[a-f0-9]{32})(?![A-Za-z0-9_])")),
     ("SLACK_TOKEN", re.compile(r"(?<![A-Za-z0-9_])(xox[bpors]-[A-Za-z0-9-]{10,})(?![A-Za-z0-9_])")),
-    # Password in prose: "password to X" or "set her password to X"
+    # Password in prose: "password X", "password is X", "password to X", "set a password X"
     ("PASSWORD_IN_PROSE", re.compile(
-        r"""(?i)(?:password|passwd|passcode)\s+(?:is|was|to|of|set\s+to)\s+['"]?([^\s'",.]{6,})['"]?"""
+        r"""(?i)(?:password|passwd|passcode)\s+(?:(?:is|was|to|of|set\s+to)\s+)?['"]?([^\s'",.]{6,})['"]?"""
     )),
     ("HIGH_ENTROPY_BASE64", re.compile(r"(?<![A-Za-z0-9+/=])[A-Za-z0-9+/]{40,}={0,2}(?![A-Za-z0-9+/=])")),
     # International phone numbers
