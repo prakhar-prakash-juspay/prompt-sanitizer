@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from aegis.config import AegisConfig
 from aegis.detection.allowlist import Allowlist
@@ -13,12 +14,17 @@ def create_app(config: AegisConfig, allowlist_path: Path | None = None) -> FastA
     if allowlist_path is None:
         allowlist_path = Path("~/.aegis/allowlist.yaml").expanduser()
 
+    @app.get("/health")
+    def health():
+        return {"status": "ok", "version": "0.1.0"}
+
     allowlist = Allowlist(allowlist_path)
     proxy = ProxyRouter(config=config, allowlist=allowlist)
     app.include_router(proxy.router)
 
-    @app.get("/health")
-    def health():
-        return {"status": "ok", "version": "0.1.0"}
+    # Serve viewer static files if they exist
+    static_dir = Path(__file__).parent.parent / "viewer" / "static"
+    if static_dir.exists():
+        app.mount("/viewer", StaticFiles(directory=str(static_dir), html=True), name="viewer")
 
     return app
