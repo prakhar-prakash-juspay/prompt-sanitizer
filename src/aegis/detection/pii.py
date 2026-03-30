@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from presidio_analyzer import AnalyzerEngine
+from presidio_analyzer.nlp_engine import NlpEngineProvider
 
 
 @dataclass
@@ -25,8 +26,13 @@ ENTITIES = [
 
 
 class PiiDetector:
-    def __init__(self):
-        self._analyzer = AnalyzerEngine()
+    def __init__(self, model_name: str = "en_core_web_sm"):
+        nlp_config = {
+            "nlp_engine_name": "spacy",
+            "models": [{"lang_code": "en", "model_name": model_name}],
+        }
+        nlp_engine = NlpEngineProvider(nlp_configuration=nlp_config).create_engine()
+        self._analyzer = AnalyzerEngine(nlp_engine=nlp_engine)
 
     def detect(self, text: str) -> list[Detection]:
         results = self._analyzer.analyze(
