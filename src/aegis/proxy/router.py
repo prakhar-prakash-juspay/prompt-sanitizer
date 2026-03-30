@@ -26,29 +26,58 @@ class ProxyRouter:
             methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
         )
 
+    def _redact_string(self, text: str, all_redactions: list[dict]) -> str:
+        detections = self.engine.detect(text)
+        if not detections:
+            return text
+        result = self.redactor.redact(text, detections)
+        for placeholder, info in result.redaction_map.items():
+            all_redactions.append({
+                "type": info["type"],
+                "placeholder": placeholder,
+                "original": info["original"],
+            })
+        return result.redacted_text
+
+    def _redact_message_content(self, content: Any, all_redactions: list[dict]) -> Any:
+        """Redact within message content only (string or content blocks)."""
+        if isinstance(content, str):
+            return self._redact_string(content, all_redactions)
+        elif isinstance(content, list):
+            # Content blocks: [{"type": "text", "text": "..."}, ...]
+            result = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text" and "text" in block:
+                    result.append({**block, "text": self._redact_string(block["text"], all_redactions)})
+                else:
+                    result.append(block)
+            return result
+        return content
+
     def _redact_body(self, body: dict[str, Any]) -> tuple[dict[str, Any], list[dict]]:
         all_redactions: list[dict] = []
+        redacted = dict(body)
 
-        def walk_and_redact(obj: Any) -> Any:
-            if isinstance(obj, str):
-                detections = self.engine.detect(obj)
-                if not detections:
-                    return obj
-                result = self.redactor.redact(obj, detections)
-                for placeholder, info in result.redaction_map.items():
-                    all_redactions.append({
-                        "type": info["type"],
-                        "placeholder": placeholder,
-                        "original": info["original"],
-                    })
-                return result.redacted_text
-            elif isinstance(obj, dict):
-                return {k: walk_and_redact(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
-                return [walk_and_redact(item) for item in obj]
-            return obj
+        # Only redact within messages content — leave tool definitions,
+        # model names, and other structural fields untouched
+        if "messages" in redacted:
+            new_messages = []
+            for msg in redacted["messages"]:
+                if isinstance(msg, dict) and "content" in msg:
+                    new_msg = dict(msg)
+                    new_msg["content"] = self._redact_message_content(msg["content"], all_redactions)
+                    new_messages.append(new_msg)
+                else:
+                    new_messages.append(msg)
+            redacted["messages"] = new_messages
 
-        redacted = walk_and_redact(body)
+        # Also redact system prompt if present
+        if "system" in redacted:
+            if isinstance(redacted["system"], str):
+                redacted["system"] = self._redact_string(redacted["system"], all_redactions)
+            elif isinstance(redacted["system"], list):
+                redacted["system"] = self._redact_message_content(redacted["system"], all_redactions)
+
         return redacted, all_redactions
 
     async def proxy_request(self, provider: str, path: str, request: Request) -> Response:
