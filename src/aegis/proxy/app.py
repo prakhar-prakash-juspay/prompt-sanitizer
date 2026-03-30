@@ -17,4 +17,8 @@ def create_app(config: AegisConfig, allowlist_path: Path | None = None) -> FastA
     proxy = ProxyRouter(config=config, allowlist=allowlist)
     app.include_router(proxy.router)
 
+    @app.get("/health")
+    def health():
+        return {"status": "ok", "version": "0.1.0"}
+
     return app
