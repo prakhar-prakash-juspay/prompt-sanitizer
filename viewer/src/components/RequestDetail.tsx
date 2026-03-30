@@ -6,19 +6,26 @@ interface Props {
 }
 
 function highlightRedactions(text: string, entry: AuditEntry): (string | JSX.Element)[] {
+  // Match ALL [REDACTED:TYPE:hash] placeholders in the text
+  const pattern = /\[REDACTED:[A-Z_]+:[a-f0-9]+\]/g
   const parts: (string | JSX.Element)[] = []
-  let remaining = text
+  let lastIndex = 0
   let keyCounter = 0
-  for (const r of entry.redactions) {
-    const idx = remaining.indexOf(r.placeholder)
-    if (idx === -1) continue
-    parts.push(remaining.slice(0, idx))
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index))
+    }
     parts.push(
-      <RedactionBadge key={`${r.placeholder}-${keyCounter++}`} placeholder={r.placeholder} requestId={entry.request_id} />
+      <RedactionBadge key={`redaction-${keyCounter++}`} placeholder={match[0]} requestId={entry.request_id} />
     )
-    remaining = remaining.slice(idx + r.placeholder.length)
+    lastIndex = match.index + match[0].length
   }
-  parts.push(remaining)
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex))
+  }
   return parts
 }
 
