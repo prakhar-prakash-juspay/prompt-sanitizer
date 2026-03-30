@@ -18,11 +18,52 @@ class TestCLI:
     def test_setup_creates_config_dir(self, runner, tmp_path, monkeypatch):
         aegis_dir = tmp_path / ".aegis"
         monkeypatch.setenv("AEGIS_HOME", str(aegis_dir))
+        # Create a shell profile for setup to write to
+        bashrc = tmp_path / ".bashrc"
+        bashrc.write_text("# existing config\n")
+        monkeypatch.setenv("SHELL", "/bin/bash")
+        monkeypatch.setattr("aegis.cli._detect_shell_profile", lambda: bashrc)
         result = runner.invoke(cli, ["setup"])
         assert result.exit_code == 0
         assert aegis_dir.exists()
         assert (aegis_dir / "config.yaml").exists()
         assert (aegis_dir / "allowlist.yaml").exists()
+
+    def test_setup_auto_configures_shell(self, runner, tmp_path, monkeypatch):
+        aegis_dir = tmp_path / ".aegis"
+        monkeypatch.setenv("AEGIS_HOME", str(aegis_dir))
+        bashrc = tmp_path / ".bashrc"
+        bashrc.write_text("# existing config\n")
+        monkeypatch.setattr("aegis.cli._detect_shell_profile", lambda: bashrc)
+        result = runner.invoke(cli, ["setup"])
+        assert result.exit_code == 0
+        content = bashrc.read_text()
+        assert "ANTHROPIC_BASE_URL=http://localhost:8443/anthropic" in content
+        assert "OPENAI_BASE_URL=http://localhost:8443/openai" in content
+
+    def test_setup_idempotent_shell_config(self, runner, tmp_path, monkeypatch):
+        aegis_dir = tmp_path / ".aegis"
+        monkeypatch.setenv("AEGIS_HOME", str(aegis_dir))
+        bashrc = tmp_path / ".bashrc"
+        bashrc.write_text("# existing config\n")
+        monkeypatch.setattr("aegis.cli._detect_shell_profile", lambda: bashrc)
+        # Run setup twice
+        runner.invoke(cli, ["setup"])
+        runner.invoke(cli, ["setup"])
+        content = bashrc.read_text()
+        # Should only appear once
+        assert content.count("ANTHROPIC_BASE_URL") == 1
+
+    def test_setup_skip_shell(self, runner, tmp_path, monkeypatch):
+        aegis_dir = tmp_path / ".aegis"
+        monkeypatch.setenv("AEGIS_HOME", str(aegis_dir))
+        bashrc = tmp_path / ".bashrc"
+        bashrc.write_text("# existing config\n")
+        monkeypatch.setattr("aegis.cli._detect_shell_profile", lambda: bashrc)
+        result = runner.invoke(cli, ["setup", "--skip-shell"])
+        assert result.exit_code == 0
+        content = bashrc.read_text()
+        assert "ANTHROPIC_BASE_URL" not in content
 
     def test_status_when_not_running(self, runner, tmp_path, monkeypatch):
         monkeypatch.setenv("AEGIS_HOME", str(tmp_path / ".aegis"))

@@ -29,12 +29,61 @@ def cli():
     pass
 
 
+AEGIS_SHELL_MARKER = "# Aegis Proxy"
+
+AEGIS_ENV_LINES = [
+    AEGIS_SHELL_MARKER,
+    "export ANTHROPIC_BASE_URL=http://localhost:8443/anthropic",
+    "export OPENAI_BASE_URL=http://localhost:8443/openai",
+]
+
+
+def _detect_shell_profile() -> Path:
+    shell = os.environ.get("SHELL", "/bin/bash")
+    if "zsh" in shell:
+        return Path("~/.zshrc").expanduser()
+    return Path("~/.bashrc").expanduser()
+
+
+def _shell_already_configured(profile: Path) -> bool:
+    if not profile.exists():
+        return False
+    return AEGIS_SHELL_MARKER in profile.read_text()
+
+
+def _configure_shell_profile(profile: Path) -> bool:
+    """Append aegis env vars to shell profile. Returns True if modified."""
+    if _shell_already_configured(profile):
+        return False
+    with open(profile, "a") as f:
+        f.write("\n" + "\n".join(AEGIS_ENV_LINES) + "\n")
+    return True
+
+
+def _detect_agents() -> list[dict]:
+    """Detect installed agentic coding tools."""
+    agents = []
+    # Claude Code
+    claude_dir = Path("~/.claude").expanduser()
+    if claude_dir.exists() or shutil.which("claude"):
+        agents.append({"name": "Claude Code", "env_var": "ANTHROPIC_BASE_URL"})
+    # OpenAI Codex CLI
+    if shutil.which("codex"):
+        agents.append({"name": "OpenAI Codex", "env_var": "OPENAI_BASE_URL"})
+    # GitHub Copilot (VS Code extension — check via code CLI)
+    if shutil.which("code"):
+        agents.append({"name": "VS Code (Copilot)", "env_var": "OPENAI_BASE_URL"})
+    return agents
+
+
 @cli.command()
-def setup():
-    """One-time setup: create config directory, default config, and allowlist."""
+@click.option("--skip-shell", is_flag=True, help="Skip auto-configuring shell profile")
+def setup(skip_shell: bool):
+    """One-time setup: create config, configure shell, detect agents. Fully automatic."""
     aegis_home = get_aegis_home()
     aegis_home.mkdir(parents=True, exist_ok=True)
 
+    # 1. Create config
     config_path = aegis_home / "config.yaml"
     if not config_path.exists():
         config = default_config()
@@ -60,42 +109,49 @@ def setup():
         }
         with open(config_path, "w") as f:
             yaml.dump(config_dict, f, default_flow_style=False)
+    console.print(f"[green]✓[/green] Config at {config_path}")
 
+    # 2. Create allowlist
     allowlist_path = aegis_home / "allowlist.yaml"
     if not allowlist_path.exists():
         allowlist_path.write_text("allowed: []\n")
+    console.print(f"[green]✓[/green] Allowlist at {allowlist_path}")
 
-    console.print(f"[green]✓[/green] aegis config at {config_path}")
-    console.print(f"[green]✓[/green] allowlist at {allowlist_path}")
+    # 3. Auto-configure shell profile
+    if not skip_shell:
+        profile = _detect_shell_profile()
+        if _configure_shell_profile(profile):
+            console.print(f"[green]✓[/green] Added env vars to {profile}")
+        else:
+            console.print(f"[dim]✓[/dim] Shell profile already configured ({profile})")
+    else:
+        console.print("[dim]—[/dim] Skipped shell configuration")
+
+    # 4. Detect agents
+    agents = _detect_agents()
+    if agents:
+        console.print()
+        console.print("[bold]Detected agents:[/bold]")
+        for agent in agents:
+            console.print(f"  [green]✓[/green] {agent['name']} — will route through aegis via {agent['env_var']}")
+    else:
+        console.print()
+        console.print("[dim]No known agents detected. Aegis will protect any tool that uses:")
+        console.print("  ANTHROPIC_BASE_URL or OPENAI_BASE_URL[/dim]")
+
     console.print()
-    console.print("To route agents through aegis, set these environment variables:")
-    console.print()
-    console.print("  export ANTHROPIC_BASE_URL=http://localhost:8443/anthropic")
-    console.print("  export OPENAI_BASE_URL=http://localhost:8443/openai")
-    console.print()
-    console.print("Or run: [bold]aegis configure-shell[/bold]")
+    console.print("[bold]Setup complete.[/bold] Open a new terminal and run [bold]aegis start[/bold].")
 
 
 @cli.command(name="configure-shell")
 def configure_shell():
-    """Auto-append base URL env vars to shell profile."""
-    shell = os.environ.get("SHELL", "/bin/bash")
-    if "zsh" in shell:
-        profile = Path("~/.zshrc").expanduser()
+    """Auto-append base URL env vars to shell profile (idempotent)."""
+    profile = _detect_shell_profile()
+    if _configure_shell_profile(profile):
+        console.print(f"[green]✓[/green] Added aegis env vars to {profile}")
+        console.print(f"Run [bold]source {profile}[/bold] or open a new terminal.")
     else:
-        profile = Path("~/.bashrc").expanduser()
-
-    lines = [
-        "\n# Aegis Proxy",
-        "export ANTHROPIC_BASE_URL=http://localhost:8443/anthropic",
-        "export OPENAI_BASE_URL=http://localhost:8443/openai",
-    ]
-
-    with open(profile, "a") as f:
-        f.write("\n".join(lines) + "\n")
-
-    console.print(f"[green]✓[/green] Added aegis env vars to {profile}")
-    console.print(f"Run [bold]source {profile}[/bold] or open a new terminal.")
+        console.print(f"[dim]✓[/dim] Shell profile already configured ({profile})")
 
 
 @cli.command()
