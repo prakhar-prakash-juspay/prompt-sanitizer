@@ -166,15 +166,9 @@ def start():
 
     import uvicorn
     from aegis.proxy.app import create_app
-    from aegis.viewer.api import create_viewer_router
 
     allowlist_path = aegis_home / "allowlist.yaml"
-    app = create_app(config, allowlist_path=allowlist_path)
-
-    reader = AuditReader(config.audit_file_path)
-    allowlist = Allowlist(allowlist_path)
-    viewer_router = create_viewer_router(reader, allowlist)
-    app.include_router(viewer_router)
+    app = create_app(config, allowlist_path=allowlist_path, include_viewer=True)
 
     uvicorn.run(app, host="0.0.0.0", port=config.port)
 
