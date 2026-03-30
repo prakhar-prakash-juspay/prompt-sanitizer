@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "aegis-proxy"
+name = "prompt-sanitizer"
 version = "0.1.0"
 description = "Local reverse proxy that redacts secrets and PII from agentic coding tool requests to LLM APIs"
 readme = "README.md"
@@ -23,7 +23,7 @@ dependencies = [
 ]
 
 [project.scripts]
-aegis = "aegis.cli:cli"
+prompt-sanitizer = "aegis.cli:cli"
 
 [project.optional-dependencies]
 dev = [

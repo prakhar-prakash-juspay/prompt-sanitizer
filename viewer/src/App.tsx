@@ -10,7 +10,7 @@ export default function App() {
   return (
     <div>
       <div style={{ background: '#1e293b', padding: '12px 20px', borderBottom: '1px solid #334155', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontSize: 18, fontWeight: 'bold' }}>Aegis</span>
+        <span style={{ fontSize: 18, fontWeight: 'bold' }}>Prompt Sanitizer</span>
         <span style={{ color: '#64748b', fontSize: 14 }}>Log Viewer</span>
       </div>
       <div style={{ padding: '0 20px' }}>

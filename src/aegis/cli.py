@@ -25,11 +25,11 @@ def get_aegis_home() -> Path:
 @click.group()
 @click.version_option(version=__version__)
 def cli():
-    """Aegis Proxy - protect your LLM API calls from leaking secrets and PII."""
+    """Prompt Sanitizer - protect your LLM API calls from leaking secrets and PII."""
     pass
 
 
-AEGIS_SHELL_MARKER = "# Aegis Proxy"
+AEGIS_SHELL_MARKER = "# Prompt Sanitizer"
 
 AEGIS_ENV_LINES = [
     AEGIS_SHELL_MARKER,
