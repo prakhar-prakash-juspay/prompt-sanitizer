@@ -27,19 +27,29 @@ class ProxyRouter:
         )
 
     def _redact_body(self, body: dict[str, Any]) -> tuple[dict[str, Any], list[dict]]:
-        body_str = json.dumps(body)
-        detections = self.engine.detect(body_str)
-        result = self.redactor.redact(body_str, detections)
+        all_redactions: list[dict] = []
 
-        redactions = []
-        for placeholder, info in result.redaction_map.items():
-            redactions.append({
-                "type": info["type"],
-                "placeholder": placeholder,
-                "original": info["original"],
-            })
+        def walk_and_redact(obj: Any) -> Any:
+            if isinstance(obj, str):
+                detections = self.engine.detect(obj)
+                if not detections:
+                    return obj
+                result = self.redactor.redact(obj, detections)
+                for placeholder, info in result.redaction_map.items():
+                    all_redactions.append({
+                        "type": info["type"],
+                        "placeholder": placeholder,
+                        "original": info["original"],
+                    })
+                return result.redacted_text
+            elif isinstance(obj, dict):
+                return {k: walk_and_redact(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [walk_and_redact(item) for item in obj]
+            return obj
 
-        return json.loads(result.redacted_text), redactions
+        redacted = walk_and_redact(body)
+        return redacted, all_redactions
 
     async def proxy_request(self, provider: str, path: str, request: Request) -> Response:
         if provider not in self.config.providers:
