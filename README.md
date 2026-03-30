@@ -32,6 +32,8 @@ Response returned as-is to agent
 ## Quick Start
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
 pip install -e ".[dev]"
 python -m spacy download en_core_web_sm
 prompt-sanitizer setup
