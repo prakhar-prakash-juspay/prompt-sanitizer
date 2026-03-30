@@ -52,7 +52,7 @@ def _shell_already_configured(profile: Path) -> bool:
 
 
 def _configure_shell_profile(profile: Path) -> bool:
-    """Append aegis env vars to shell profile. Returns True if modified."""
+    """Append env vars to shell profile. Returns True if modified."""
     if _shell_already_configured(profile):
         return False
     with open(profile, "a") as f:
@@ -133,14 +133,14 @@ def setup(skip_shell: bool):
         console.print()
         console.print("[bold]Detected agents:[/bold]")
         for agent in agents:
-            console.print(f"  [green]✓[/green] {agent['name']} — will route through aegis via {agent['env_var']}")
+            console.print(f"  [green]✓[/green] {agent['name']} — will route through proxy via {agent['env_var']}")
     else:
         console.print()
-        console.print("[dim]No known agents detected. Aegis will protect any tool that uses:")
+        console.print("[dim]No known agents detected. Prompt Sanitizer will protect any tool that uses:")
         console.print("  ANTHROPIC_BASE_URL or OPENAI_BASE_URL[/dim]")
 
     console.print()
-    console.print("[bold]Setup complete.[/bold] Open a new terminal and run [bold]aegis start[/bold].")
+    console.print("[bold]Setup complete.[/bold] Open a new terminal and run [bold]prompt-sanitizer start[/bold].")
 
 
 @cli.command(name="configure-shell")
@@ -148,7 +148,7 @@ def configure_shell():
     """Auto-append base URL env vars to shell profile (idempotent)."""
     profile = _detect_shell_profile()
     if _configure_shell_profile(profile):
-        console.print(f"[green]✓[/green] Added aegis env vars to {profile}")
+        console.print(f"[green]✓[/green] Added env vars to {profile}")
         console.print(f"Run [bold]source {profile}[/bold] or open a new terminal.")
     else:
         console.print(f"[dim]✓[/dim] Shell profile already configured ({profile})")
@@ -156,12 +156,12 @@ def configure_shell():
 
 @cli.command()
 def start():
-    """Start the aegis proxy."""
+    """Start the proxy."""
     aegis_home = get_aegis_home()
     config_path = aegis_home / "config.yaml"
     config = load_config(config_path)
 
-    console.print(f"[green]✓[/green] Starting aegis proxy on localhost:{config.port}")
+    console.print(f"[green]✓[/green] Starting prompt-sanitizer on localhost:{config.port}")
     console.print(f"[green]✓[/green] Log viewer on localhost:{config.viewer_port}")
 
     import uvicorn
@@ -181,7 +181,7 @@ def start():
 
 @cli.command()
 def stop():
-    """Stop the aegis proxy."""
+    """Stop the proxy."""
     console.print("[yellow]Stop not yet implemented for non-service mode.[/yellow]")
     console.print("Use Ctrl+C or kill the process.")
 
@@ -194,9 +194,9 @@ def status():
     config = load_config(aegis_home / "config.yaml")
     try:
         resp = httpx.get(f"http://localhost:{config.port}/health", timeout=2)
-        console.print(f"[green]✓[/green] Aegis proxy is running on port {config.port}")
+        console.print(f"[green]✓[/green] Prompt Sanitizer is running on port {config.port}")
     except Exception:
-        console.print(f"[red]✗[/red] Aegis proxy is not running")
+        console.print(f"[red]✗[/red] Prompt Sanitizer is not running")
 
 
 @cli.command()
@@ -266,17 +266,17 @@ def config():
 
 @cli.command()
 def install():
-    """Register aegis as a system service (auto-start on boot)."""
+    """Register as a system service (auto-start on boot)."""
     from aegis.service.installer import ServiceInstaller
     installer = ServiceInstaller()
-    aegis_bin = shutil.which("aegis") or sys.executable + " -m aegis"
+    aegis_bin = shutil.which("prompt-sanitizer") or sys.executable + " -m aegis"
     result = installer.install(aegis_bin)
     console.print(f"[green]✓[/green] {result}")
 
 
 @cli.command()
 def uninstall():
-    """Remove the aegis system service."""
+    """Remove the system service."""
     from aegis.service.installer import ServiceInstaller
     installer = ServiceInstaller()
     result = installer.uninstall()
