@@ -61,6 +61,9 @@ class ProxyRouter:
 
         upstream = self.config.providers[provider].upstream
         target_url = f"{upstream}/{path}"
+        # Preserve query parameters
+        if request.url.query:
+            target_url = f"{target_url}?{request.url.query}"
 
         # Read and redact request body
         raw_body = await request.body()
@@ -137,7 +140,7 @@ class ProxyRouter:
 
         async def stream_generator():
             try:
-                async for chunk in upstream_response.stream.aiter_bytes():
+                async for chunk in upstream_response.aiter_bytes():
                     collected_chunks.append(chunk)
                     yield chunk
             finally:
