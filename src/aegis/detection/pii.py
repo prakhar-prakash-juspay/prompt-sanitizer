@@ -30,16 +30,28 @@ NER_ENTITIES = {"PERSON", "LOCATION"}
 DEFAULT_NER_THRESHOLD = 0.7
 DEFAULT_THRESHOLD = 0.3
 
-# Single-word names that are almost always company/product names in code context
+# Single-word names that are almost always company/product/tech names, not people
 KNOWN_NON_PERSONS = {
+    # Companies
     "anthropic", "openai", "google", "microsoft", "amazon", "meta", "apple",
     "github", "gitlab", "bitbucket", "docker", "kubernetes", "terraform",
     "slack", "discord", "stripe", "twilio", "sendgrid", "datadog", "splunk",
-    "redis", "postgres", "mongodb", "elasticsearch", "nginx", "apache",
-    "fastapi", "django", "flask", "react", "angular", "vue", "node",
-    "claude", "copilot", "codex", "gemini", "llama", "mistral",
+    "juspay", "razorpay", "paytm", "grafana", "vercel", "netlify", "heroku",
+    # Databases & infra
+    "redis", "postgres", "mongodb", "elasticsearch", "nginx", "apache", "kafka",
+    # Frameworks & languages
+    "fastapi", "django", "flask", "react", "angular", "vue", "node", "rust",
+    "python", "java", "typescript", "javascript", "golang", "ruby", "swift",
+    # AI models & tools
+    "claude", "copilot", "codex", "gemini", "llama", "mistral", "gpt",
+    # OS & shells
     "ubuntu", "debian", "alpine", "centos", "linux", "darwin", "windows",
-    "juspay", "razorpay", "paytm",
+    "bash", "zsh", "fish", "powershell",
+    # Common English words NER misclassifies as names
+    "skill", "tone", "write", "types", "mark", "system", "agent", "model",
+    "prompt", "token", "tool", "hook", "plan", "task", "test", "build",
+    "deploy", "config", "status", "error", "debug", "trace", "log",
+    "read", "edit", "fetch", "push", "pull", "merge", "branch", "commit",
 }
 
 
@@ -66,8 +78,18 @@ def _looks_like_org(text: str, start: int, end: int, value: str) -> bool:
     # Contains tech/product words — not a person
     tech_words = {"cloud", "platform", "studio", "engine", "server", "client",
                   "framework", "runtime", "proxy", "gateway", "hub", "lab",
-                  "code", "data", "web", "app", "net", "base", "stack"}
-    if any(w in val_lower.split() for w in tech_words):
+                  "code", "data", "web", "app", "net", "base", "stack",
+                  "api", "sdk", "cli", "os", "shell", "version"}
+    words = set(val_lower.split())
+    if words & tech_words:
+        return True
+
+    # Contains punctuation/symbols — not a person name (e.g., "System -", "darwin - Shell")
+    if any(c in value for c in "-/:@#&=+[]{}"):
+        return True
+
+    # Any word in the name is a known non-person
+    if words & KNOWN_NON_PERSONS:
         return True
 
     return False
